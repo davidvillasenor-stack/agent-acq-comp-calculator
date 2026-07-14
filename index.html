@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agent Acq Incentive Comp Calculator</title>
+<style>
+  :root{
+    --bg1:#0ea5e9; --bg2:#0891b2; --bg3:#14b8a6;
+    --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --accent:#0891b2; --accent-soft:#ecfeff; --good:#059669;
+    --shadow:0 20px 50px -12px rgba(8,51,68,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    min-height:100vh; color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 55%,var(--bg3) 120%);
+    display:flex; align-items:center; justify-content:center; padding:32px 16px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%; max-width:600px}
+  .card{
+    background:var(--card); border-radius:24px; box-shadow:var(--shadow);
+    overflow:hidden; animation:rise .5s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes rise{from{opacity:0; transform:translateY(16px)}to{opacity:1; transform:none}}
+  .head{padding:28px 32px 22px; background:linear-gradient(135deg,#0ea5e9,#0891b2); color:#fff}
+  .head h1{font-size:22px; font-weight:700; letter-spacing:-.02em}
+  .head p{font-size:13.5px; opacity:.85; margin-top:4px; font-weight:400}
+  .body{padding:28px 32px 12px}
+  .label{font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:10px; display:block}
+
+  .stepper{display:flex; align-items:center; gap:14px}
+  .stepper button{
+    width:46px; height:46px; border-radius:14px; border:1.5px solid var(--line);
+    background:#fff; font-size:24px; color:var(--accent); cursor:pointer; font-weight:600;
+    transition:.15s; line-height:1; display:flex; align-items:center; justify-content:center;
+  }
+  .stepper button:hover{background:var(--accent-soft); border-color:var(--accent)}
+  .stepper button:active{transform:scale(.94)}
+  #contracts{
+    flex:1; text-align:center; font-size:40px; font-weight:700; color:var(--ink);
+    border:1.5px solid var(--line); border-radius:14px; padding:6px 8px; height:64px;
+    -moz-appearance:textfield; letter-spacing:-.02em;
+  }
+  #contracts::-webkit-outer-spin-button,#contracts::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  #contracts:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft)}
+  input[type=range]{width:100%; margin-top:16px; accent-color:var(--accent); height:6px; cursor:pointer}
+
+  .mult{margin-top:26px}
+  .seg{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+  .seg button{
+    padding:14px 6px; border-radius:14px; border:1.5px solid var(--line); background:#fff;
+    cursor:pointer; transition:.18s; text-align:center; font-family:inherit;
+  }
+  .seg button .m{font-size:18px; font-weight:700; color:var(--ink); display:block}
+  .seg button .s{font-size:10.5px; color:var(--muted); margin-top:2px; display:block}
+  .seg button:hover{border-color:var(--accent); background:var(--accent-soft)}
+  .seg button.on{
+    border-color:var(--accent); background:linear-gradient(135deg,#0ea5e9,#0891b2);
+    box-shadow:0 8px 20px -6px rgba(8,145,178,.5);
+  }
+  .seg button.on .m,.seg button.on .s{color:#fff}
+
+  .break{margin-top:26px; border-top:1px solid var(--line); padding-top:20px}
+  .row{display:flex; align-items:center; justify-content:space-between; padding:9px 0; font-size:14px}
+  .row .t{color:var(--muted)}
+  .row .t b{color:var(--ink); font-weight:600}
+  .row .v{font-weight:600; font-variant-numeric:tabular-nums}
+  .row.dim .v{color:var(--muted)}
+  .bar{height:6px; border-radius:6px; background:var(--line); margin-top:4px; overflow:hidden}
+  .bar span{display:block; height:100%; background:linear-gradient(90deg,#0ea5e9,#0891b2); border-radius:6px; transition:width .4s cubic-bezier(.2,.8,.2,1); width:0}
+
+  .total{
+    margin:8px -32px 0; padding:24px 32px 30px; background:var(--accent-soft);
+    border-top:1px solid var(--line);
+  }
+  .total .cap{font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--accent)}
+  .total .amt{font-size:48px; font-weight:800; letter-spacing:-.03em; color:var(--ink); margin-top:2px; font-variant-numeric:tabular-nums}
+  .total .sub{font-size:13px; color:var(--muted); margin-top:4px}
+  .foot{padding:16px 32px 26px; font-size:11.5px; color:var(--muted); line-height:1.6}
+  .foot b{color:var(--ink)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="head">
+        <h1>Agent Acq Incentive Comp Calculator</h1>
+        <p>Enter closed contracts, choose the finish multiplier, see the payout.</p>
+      </div>
+      <div class="body">
+        <label class="label" for="contracts">Closed Contracts</label>
+        <div class="stepper">
+          <button type="button" onclick="bump(-1)" aria-label="decrease">&minus;</button>
+          <input id="contracts" type="number" min="0" value="45" inputmode="numeric" />
+          <button type="button" onclick="bump(1)" aria-label="increase">+</button>
+        </div>
+        <input id="slider" type="range" min="0" max="90" value="45" />
+
+        <div class="mult">
+          <label class="label">Finish Multiplier</label>
+          <div class="seg" id="seg">
+            <button type="button" data-m="1"    class="on"><span class="m">1.0&times;</span><span class="s">None</span></button>
+            <button type="button" data-m="1.15"><span class="m">1.15&times;</span><span class="s">Tier 3</span></button>
+            <button type="button" data-m="1.3"><span class="m">1.3&times;</span><span class="s">Tier 2</span></button>
+            <button type="button" data-m="1.5"><span class="m">1.5&times;</span><span class="s">Tier 1</span></button>
+          </div>
+        </div>
+
+        <div class="break" id="break"></div>
+      </div>
+
+      <div class="total">
+        <div class="cap">Total Incentive</div>
+        <div class="amt" id="total">$0</div>
+        <div class="sub" id="totalsub">Base $0 &times; 1.0</div>
+      </div>
+
+      <div class="foot">
+        <b>Tiers (marginal):</b> 1–20 = $0 · 21–44 = $100/home · 45–59 = $150/home · 60+ = $250/home.
+        Each band pays only on the homes within it. Multiplier applies to the full base incentive.
+      </div>
+    </div>
+  </div>
+
+<script>
+  const TIERS=[
+    {from:0,to:20,rate:0,label:'1–20'},
+    {from:20,to:44,rate:100,label:'21–44'},
+    {from:44,to:59,rate:150,label:'45–59'},
+    {from:59,to:Infinity,rate:250,label:'60+'}
+  ];
+  const $=id=>document.getElementById(id);
+  const fmt=n=>'$'+Math.round(n).toLocaleString('en-US');
+  let mult=1, animId=null;
+
+  function bump(d){ setN((parseInt($('contracts').value||0,10))+d); }
+  function setN(n){ n=Math.max(0,n||0); $('contracts').value=n; $('slider').value=Math.min(90,n); calc(); }
+
+  function calc(){
+    const n=Math.max(0,parseInt($('contracts').value||0,10));
+    let base=0, rows='';
+    TIERS.forEach(t=>{
+      const homes=Math.max(0,Math.min(n,t.to)-t.from);
+      const sub=homes*t.rate;
+      base+=sub;
+      const band=(t.to===Infinity)?Math.max(1,homes):(t.to-t.from);
+      const pct=band?Math.min(100,homes/band*100):0;
+      rows+=`<div class="row ${homes?'':'dim'}">
+        <div class="t"><b>${t.label}</b> &nbsp;·&nbsp; ${homes} home${homes===1?'':'s'} @ ${t.rate?('$'+t.rate):'$0'}</div>
+        <div class="v">${fmt(sub)}</div></div>
+        <div class="bar"><span style="width:${homes?pct:0}%"></span></div>`;
+    });
+    $('break').innerHTML=rows;
+    const total=base*mult;
+    $('totalsub').textContent=`Base ${fmt(base)} × ${mult}`;
+    countTo(total);
+  }
+
+  function countTo(target){
+    cancelAnimationFrame(animId);
+    const el=$('total');
+    const start=parseFloat(el.dataset.v||0), t0=performance.now(), dur=450;
+    (function step(now){
+      const p=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-p,3);
+      const val=start+(target-start)*e;
+      el.textContent=fmt(val); el.dataset.v=val;
+      if(p<1) animId=requestAnimationFrame(step); else { el.textContent=fmt(target); el.dataset.v=target; }
+    })(t0);
+  }
+
+  $('contracts').addEventListener('input',()=>{ $('slider').value=Math.min(90,parseInt($('contracts').value||0,10)); calc(); });
+  $('slider').addEventListener('input',()=>{ $('contracts').value=$('slider').value; calc(); });
+  $('seg').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    document.querySelectorAll('#seg button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); mult=parseFloat(b.dataset.m); calc();
+  });
+  calc();
+</script>
+</body>
+</html>
